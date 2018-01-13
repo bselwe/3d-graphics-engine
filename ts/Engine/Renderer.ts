@@ -4,11 +4,11 @@ import { Mesh } from ".//Mesh";
 import { Camera } from "./Camera";
 import { Device } from "./Device";
 import { Vector3 } from "../Models/Vector3";
+import monkey from "../../models/monkey.babylon.json";
 
 @injectable()
 export class Renderer {
     private canvas: HTMLCanvasElement;
-    private mesh: Mesh;
     private meshes: Mesh[];
     private camera: Camera;
     private device: Device;
@@ -26,25 +26,13 @@ export class Renderer {
     }
 
     private initMeshes() {
-        this.mesh = new Mesh("Cube");
-        this.meshes = [this.mesh];
-
-        this.mesh.vertices = [
-            new Vector3(0, 0, 0),
-            new Vector3(1, 0, 0),
-            new Vector3(1, 1, 0),
-            new Vector3(0, 1, 0),
-            new Vector3(0, 0, 1),
-            new Vector3(1, 0, 1),
-            new Vector3(1, 1, 1),
-            new Vector3(0, 1, 1)
-        ];
+        this.meshes = Mesh.fromBabylon(monkey);
     }
 
     private initCamera() {
         this.camera = new Camera();
-        this.camera.position = new Vector3(3, 0.5, 6);
-        this.camera.target = new Vector3(0, 0.5, 0.5);
+        this.camera.position = new Vector3(0, 0, -7);
+        this.camera.target = new Vector3(0, 0, 0);
     }
 
     private initDevice() {
@@ -55,7 +43,7 @@ export class Renderer {
         this.device.clear();
         this.device.render(this.camera, this.meshes);
 
-        this.mesh.position.z += 0.01;
+        this.meshes[0].position.x += 0.005;
 
         requestAnimationFrame(this.render);
     }

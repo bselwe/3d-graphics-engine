@@ -26,14 +26,14 @@ export class Device {
     }
 
     public render(camera: Camera, meshes: Mesh[]) {
-        let viewMatrix = Transformations.lookAt(camera.position, camera.target, Vector3.UP);
+        let viewMatrix = Transformations.lookAt(camera.position, camera.target, Vector3.DOWN);
         let projectionMatrix = Transformations.perspective();
 
         for (let i = 0; i < meshes.length; i++) {
             let mesh = meshes[i];
 
             let scale = Transformations.scale(1, 1, 1);
-            let rotation = Transformations.rotate(mesh.rotation.y, mesh.rotation.x, mesh.rotation.z);
+            let rotation = Transformations.rotate(mesh.rotation.x, mesh.rotation.y, mesh.rotation.z);
             let translation = Transformations.translate(mesh.position.x, mesh.position.y, mesh.position.z);
 
             let worldMatrix = multiply(translation, multiply(rotation, scale));

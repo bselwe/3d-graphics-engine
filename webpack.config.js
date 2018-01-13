@@ -1,7 +1,7 @@
-const path = require('path');
+const path = require("path");
 const webpack = require("webpack");
 
-const HtmlWebpackPlugin = require("html-webpack-plugin");
+const HtmlPlugin = require("html-webpack-plugin");
 const ExtractTextPlugin = require("extract-text-webpack-plugin");
 
 const deployDir = process.env.DEPLOY_DIR ? process.env.DEPLOY_DIR : __dirname;
@@ -25,7 +25,7 @@ module.exports = {
     },
 
     plugins: [
-        new HtmlWebpackPlugin({
+        new HtmlPlugin({
             template: path.join(__dirname, "index.html")
         }),
         new ExtractTextPlugin({ 
@@ -62,6 +62,10 @@ module.exports = {
                 use: ExtractTextPlugin.extract({
                     fallback: "style-loader", use: "css-loader!sass-loader",
                 })
+            },
+            {
+                test: /\.json$/,
+                loader: 'json-loader'
             }
         ]
     }
