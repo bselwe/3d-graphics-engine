@@ -7,7 +7,10 @@ import { Vector2 } from "../Models/Vector2";
 import { Transformations } from "./Transformations";
 
 export class Device {
-    private buffer: ImageData;
+    private readonly maxDepth = 10000000;
+
+    private backBuffer: ImageData;
+    private depthBuffer: number[];
     private canvas: HTMLCanvasElement;
     private context: CanvasRenderingContext2D;
     private width: number;
@@ -18,15 +21,17 @@ export class Device {
         this.context = canvas.getContext("2d") as CanvasRenderingContext2D;
         this.width = canvas.width;
         this.height = canvas.height;
+        this.depthBuffer = new Array(this.width * this.height);
     }
 
     public clear() {
         this.context.clearRect(0, 0, this.width, this.height);
-        this.buffer = this.context.getImageData(0, 0, this.width, this.height);
+        this.backBuffer = this.context.getImageData(0, 0, this.width, this.height);
+        this.depthBuffer.fill(this.maxDepth);
     }
 
     public render(camera: Camera, meshes: Mesh[]) {
-        let viewMatrix = Transformations.lookAt(camera.position, camera.target, Vector3.DOWN);
+        let viewMatrix = Transformations.lookAt(camera.position, camera.target, Vector3.UP);
         let projectionMatrix = Transformations.perspective();
 
         for (let i = 0; i < meshes.length; i++) {
@@ -54,7 +59,7 @@ export class Device {
             }
         }
 
-        this.context.putImageData(this.buffer, 0, 0);
+        this.context.putImageData(this.backBuffer, 0, 0);
     }
 
     // Transform 3D coordinates to 2D coordinates using transformation matrix
@@ -71,20 +76,26 @@ export class Device {
         return new Vector3(x, y, point.get([2]));
     }
 
-    private drawPoint(point: Vector2, color: Color) {
+    private drawPoint(point: Vector3, color: Color) {
         if (point.x >= 0 && point.y >= 0 && point.x <= this.width && point.y <= this.height) {
-            this.putPixel(point.x, point.y, color);
+            this.putPixel(point.x, point.y, point.z, color);
         }
     }
 
-    private putPixel(x: number, y: number, color: Color) {
-        let bufferData = this.buffer.data;
-        let index = ((x >> 0) + (y >> 0) * this.width) * 4;
+    private putPixel(x: number, y: number, z: number, color: Color) {
+        let bufferData = this.backBuffer.data;
+        let pixelIndex = (x >> 0) + (y >> 0) * this.width;
+        let colorIndex = pixelIndex * 4;
 
-        bufferData[index] = color.r;
-        bufferData[index + 1] = color.g;
-        bufferData[index + 2] = color.b;
-        bufferData[index + 3] = color.a;
+        if (this.depthBuffer[pixelIndex] < z) {
+            return;
+        }
+
+        this.depthBuffer[pixelIndex] = z;
+        bufferData[colorIndex] = color.r;
+        bufferData[colorIndex + 1] = color.g;
+        bufferData[colorIndex + 2] = color.b;
+        bufferData[colorIndex + 3] = color.a;
     }
 
     private clamp(value: number, min: number = 0, max: number = 1) {
@@ -107,8 +118,13 @@ export class Device {
         let sx = this.interpolate(a.x, b.x, gradient1) >> 0;
         let ex = this.interpolate(c.x, d.x, gradient2) >> 0;
 
+        let z1 = this.interpolate(a.z, b.z, gradient1);
+        let z2 = this.interpolate(c.z, d.z, gradient2);
+
         for (let x = sx; x < ex; x++) {
-            this.drawPoint(new Vector2(x, y), color);
+            let gradient = (x - sx) / (ex - sx);
+            let z = this.interpolate(z1, z2, gradient);
+            this.drawPoint(new Vector3(x, y, z), color);
         }
     }
 
