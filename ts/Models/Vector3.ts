@@ -1,5 +1,4 @@
 export class Vector3 {
-
     private c: Array<number> = [0, 0, 0];
 
     public constructor(x: number = 0, y: number = 0, z: number = 0) {
@@ -7,10 +6,6 @@ export class Vector3 {
         this.y = y;
         this.z = z;
     }
-
-    /*
-     GETTERS / SETTERS
-     */
 
     public get array(): Array<number> {
         return this.c;
@@ -81,10 +76,6 @@ export class Vector3 {
         this.z = z;
         return this;
     }
-
-    /*
-     OPERATIONS ON VECTOR
-     */
 
     public add(v: Vector3): Vector3;
     public add(x: number, y: number, z: number): Vector3;
@@ -167,10 +158,6 @@ export class Vector3 {
         return this.scale(1.0 / length);
     }
 
-    /*
-     ADDITIONAL FUNCTIONS
-     */
-
     public getLength(): number {
         return Math.sqrt(this.getSquaredLength());
     }
@@ -190,10 +177,6 @@ export class Vector3 {
     public toString(): string {
         return "[" + this.x + ", " + this.y + ", " + this.z + "]";
     }
-
-    /*
-     STATIC FUNCTIONS
-     */
 
     public static dot(v1: Vector3, v2: Vector3): number {
         return (v1.x * v2.x + v1.y * v2.y + v1.z * v2.z);
@@ -219,10 +202,6 @@ export class Vector3 {
         let z = v1.z - v2.z;
         return new Vector3(x, y, z);
     }
-
-    /*
-     STATIC VARIABLES
-     */
 
     public static get ZERO() {
         return new Vector3(0, 0);

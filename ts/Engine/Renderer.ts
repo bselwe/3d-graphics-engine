@@ -31,8 +31,8 @@ export class Renderer {
 
     private initCamera() {
         this.camera = new Camera();
-        this.camera.position = new Vector3(0, 0, -7);
-        this.camera.target = new Vector3(0, 0, 0);
+        this.camera.position = new Vector3(0, 0, 10);
+        this.camera.target = Vector3.ZERO;
     }
 
     private initDevice() {
@@ -43,7 +43,11 @@ export class Renderer {
         this.device.clear();
         this.device.render(this.camera, this.meshes);
 
-        this.meshes[0].position.x += 0.005;
+        this.meshes.forEach(mesh => {
+            // mesh.rotation.z += 0.005;
+            mesh.position.x += 0.0025;
+            mesh.position.z += 0.0025;
+        });
 
         requestAnimationFrame(this.render);
     }

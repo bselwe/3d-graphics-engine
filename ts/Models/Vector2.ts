@@ -1,15 +1,10 @@
 export class Vector2 {
-
     private c: Array<number> = [0, 0];
 
     public constructor(x: number = 0, y: number = 0) {
         this.x = x;
         this.y = y;
     }
-
-    /*
-        GETTERS / SETTERS
-     */
 
     public get array(): Array<number> {
         return this.c;
@@ -62,10 +57,6 @@ export class Vector2 {
         this.y = y;
         return this;
     }
-
-    /*
-        OPERATIONS ON VECTOR
-     */
 
     public add(v: Vector2): Vector2;
     public add(x: number, y: number): Vector2;
@@ -139,10 +130,6 @@ export class Vector2 {
         return this.scale(1.0 / length);
     }
 
-    /*
-        ADDITIONAL FUNCTIONS
-     */
-
     public getLength(): number {
         return Math.sqrt(this.getSquaredLength());
     }
@@ -163,10 +150,6 @@ export class Vector2 {
         return "[" + this.x + ", " + this.y + "]";
     }
 
-    /*
-        STATIC FUNCTIONS
-     */
-
     public static dot(v1: Vector2, v2: Vector2): number {
         return (v1.x * v2.x + v1.y * v2.y);
     }
@@ -186,10 +169,6 @@ export class Vector2 {
         let y = v1.y - v2.y;
         return new Vector2(x, y);
     }
-
-    /*
-        STATIC VARIABLES
-     */
 
     public static get ZERO() {
         return new Vector2(0, 0);

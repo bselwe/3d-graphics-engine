@@ -39,10 +39,18 @@ export class Device {
             let worldMatrix = multiply(translation, multiply(rotation, scale));
             let transformMatrix = multiply(projectionMatrix, multiply(worldMatrix, viewMatrix));
 
-            for (let j = 0; j < mesh.vertices.length; j++) {
-                let vertex = mesh.vertices[j];
-                let projectedPoint = this.projectCoordinates(vertex, transformMatrix);
-                this.drawPoint(projectedPoint);
+            for (let j = 0; j < mesh.faces.length; j++) {
+                let face = mesh.faces[j];
+                let vertexA = mesh.vertices[face.A];
+                let vertexB = mesh.vertices[face.B];
+                let vertexC = mesh.vertices[face.C];
+
+                let pixelA = this.projectCoordinates(vertexA, transformMatrix);
+                let pixelB = this.projectCoordinates(vertexB, transformMatrix);
+                let pixelC = this.projectCoordinates(vertexC, transformMatrix);
+
+                let color = (0.25 + ((j % mesh.faces.length) / mesh.faces.length) * 0.75) * 255;
+                this.drawTriangle(pixelA, pixelB, pixelC, new Color(color, color, color, 255));
             }
         }
 
@@ -60,12 +68,12 @@ export class Device {
         x = (x + 1) / 2 * this.width;
         y = (y + 1) / 2 * this.height;
 
-        return new Vector2(x, y);
+        return new Vector3(x, y, point.get([2]));
     }
 
-    private drawPoint(point: Vector2) {
+    private drawPoint(point: Vector2, color: Color) {
         if (point.x >= 0 && point.y >= 0 && point.x <= this.width && point.y <= this.height) {
-            this.putPixel(point.x, point.y, new Color(255, 255, 255, 255));
+            this.putPixel(point.x, point.y, color);
         }
     }
 
@@ -77,5 +85,59 @@ export class Device {
         bufferData[index + 1] = color.g;
         bufferData[index + 2] = color.b;
         bufferData[index + 3] = color.a;
+    }
+
+    private clamp(value: number, min: number = 0, max: number = 1) {
+        return Math.max(min, Math.min(value, max));
+    }
+
+    // min - starting point
+    // max - ending point
+    // gradient - % between the 2 points
+    private interpolate(min: number, max: number, gradient: number) {
+        return min + (max - min) * this.clamp(gradient);
+    }
+
+    // Draw line between 2 points from left to right
+    // ab -> cd, points are sorted
+    private processScanLine(y: number, a: Vector3, b: Vector3, c: Vector3, d: Vector3, color: Color) {
+        let gradient1 = a.y !== b.y ? (y - a.y) / (b.y - a.y) : 1;
+        let gradient2 = c.y !== d.y ? (y - c.y) / (d.y - c.y) : 1;
+
+        let sx = this.interpolate(a.x, b.x, gradient1) >> 0;
+        let ex = this.interpolate(c.x, d.x, gradient2) >> 0;
+
+        for (let x = sx; x < ex; x++) {
+            this.drawPoint(new Vector2(x, y), color);
+        }
+    }
+
+    private drawTriangle(p1: Vector3, p2: Vector3, p3: Vector3, color: Color) {
+        // Sort points
+        [p1, p2, p3] = [p1, p2, p3].sort((p1, p2) => p1.y < p2.y ? -1 : 1);
+
+        // Slopes
+        let dP1P2 = p2.y - p1.y > 0 ? (p2.x - p1.x) / (p2.y - p1.y) : 0;
+        let dP1P3 = p3.y - p1.y > 0 ? (p3.x - p1.x) / (p3.y - p1.y) : 0;
+
+        // P3 on the left
+        if (dP1P2 > dP1P3) {
+            for (let y = p1.y >> 0; y <= p3.y >> 0; y++) {
+                if (y < p2.y) {
+                    this.processScanLine(y, p1, p3, p1, p2, color);
+                } else {
+                    this.processScanLine(y, p1, p3, p2, p3, color);
+                }
+            }
+        // P2 on the left
+        } else {
+            for (let y = p1.y >> 0; y <= p3.y >> 0; y++) {
+                if (y < p2.y) {
+                    this.processScanLine(y, p1, p2, p1, p3, color);
+                } else {
+                    this.processScanLine(y, p2, p3, p1, p3, color);
+                }
+            }
+        }
     }
 }
