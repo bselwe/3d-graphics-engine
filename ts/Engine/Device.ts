@@ -31,7 +31,7 @@ export class Device {
     }
 
     public render(camera: Camera, meshes: Mesh[]) {
-        let viewMatrix = Transformations.lookAt(camera.position, camera.target, Vector3.UP);
+        let viewMatrix = Transformations.lookAt(camera.position, camera.target, Vector3.DOWN);
         let projectionMatrix = Transformations.perspective();
 
         for (let i = 0; i < meshes.length; i++) {

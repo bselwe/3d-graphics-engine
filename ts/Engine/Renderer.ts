@@ -9,12 +9,16 @@ import monkey from "../../models/monkey.babylon.json";
 @injectable()
 export class Renderer {
     private canvas: HTMLCanvasElement;
+    private fps: HTMLDivElement;
+    private previousDate: number;
     private meshes: Mesh[];
     private camera: Camera;
     private device: Device;
 
-    constructor(canvas: HTMLCanvasElement) {
+    constructor(canvas: HTMLCanvasElement, fps: HTMLDivElement) {
         this.canvas = canvas;
+        this.fps = fps;
+        this.previousDate = performance.now();
     }
 
     public init() {
@@ -31,7 +35,7 @@ export class Renderer {
 
     private initCamera() {
         this.camera = new Camera();
-        this.camera.position = new Vector3(0, 0, 10);
+        this.camera.position = new Vector3(3, -2, -8);
         this.camera.target = Vector3.ZERO;
     }
 
@@ -40,15 +44,25 @@ export class Renderer {
     }
 
     private render = () => {
+        this.updateFps();
+
         this.device.clear();
         this.device.render(this.camera, this.meshes);
 
         this.meshes.forEach(mesh => {
             // mesh.rotation.z += 0.005;
-            mesh.position.x += 0.0025;
-            mesh.position.z += 0.0025;
+            mesh.position.x += 0.002;
+            mesh.position.z += 0.006;
         });
 
         requestAnimationFrame(this.render);
+    }
+
+    private updateFps() {
+        let now = performance.now();
+        let currentFps = 1000 / (now - this.previousDate) >> 0;
+        this.previousDate = now;
+
+        this.fps.innerText = `${currentFps} FPS`;
     }
 }
