@@ -1,12 +1,16 @@
 import { container } from "./inversify.config";
 import { injectable } from "inversify";
-import * as TSM from "@richlewis42/tsm";
+import { Renderer } from "./Engine/Renderer";
 
 @injectable()
 export class Application {
-    constructor() {
+    private renderer: Renderer;
+
+    constructor(renderer: Renderer) {
+        this.renderer = renderer;
     }
 
     public async init() {
+        this.renderer.init();
     }
 }
