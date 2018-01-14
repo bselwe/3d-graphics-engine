@@ -31,12 +31,12 @@ export class Renderer {
     }
 
     private initMeshes() {
-        this.meshes = Mesh.fromBabylon(torus);
+        this.meshes = Mesh.fromBabylon(monkey);
     }
 
     private initCamera() {
         this.camera = new Camera();
-        this.camera.position = new Vector3(3, -2, -5);
+        this.camera.position = new Vector3(0, -2, -8);
         this.camera.target = Vector3.ZERO;
     }
 

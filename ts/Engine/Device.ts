@@ -88,15 +88,21 @@ export class Device {
     }
 
     private transformCoordinates(vector: Vector3, transformMatrix: mathjs.Matrix): Vector3 {
-        let vectorCoordinates = [...vector.array, 1];
-        let result = multiply(transformMatrix, vectorCoordinates);
-
-        let x = result.get([0]);
-        let y = result.get([1]);
-        let z = result.get([2]);
-        let w = result.get([3]);
-
+        let x = (vector.x * transformMatrix.get([0, 0])) + (vector.y * transformMatrix.get([0, 1])) + (vector.z * transformMatrix.get([0, 2])) + transformMatrix.get([0, 3]);
+        let y = (vector.x * transformMatrix.get([1, 0])) + (vector.y * transformMatrix.get([1, 1])) + (vector.z * transformMatrix.get([1, 2])) + transformMatrix.get([1, 3]);
+        let z = (vector.x * transformMatrix.get([2, 0])) + (vector.y * transformMatrix.get([2, 1])) + (vector.z * transformMatrix.get([2, 2])) + transformMatrix.get([2, 3]);
+        let w = (vector.x * transformMatrix.get([3, 0])) + (vector.y * transformMatrix.get([3, 1])) + (vector.z * transformMatrix.get([3, 2])) + transformMatrix.get([3, 3]);
         return new Vector3(x / w, y / w, z / w);
+
+        // let vectorCoordinates = [...vector.array, 1];
+        // let result = multiply(transformMatrix, vectorCoordinates);
+
+        // let x = result.get([0]);
+        // let y = result.get([1]);
+        // let z = result.get([2]);
+        // let w = result.get([3]);
+
+        // return new Vector3(x / w, y / w, z / w);
     }
 
     private drawPoint(point: Vector3, color: Color) {
@@ -170,23 +176,8 @@ export class Device {
     }
 
     private drawTriangle(v1: Vertex, v2: Vertex, v3: Vertex, color: Color) {
-        if (v1.coordinates.y > v2.coordinates.y) {
-            let temp = v2;
-            v2 = v1;
-            v1 = temp;
-        }
-
-        if (v2.coordinates.y > v3.coordinates.y) {
-            let temp = v2;
-            v2 = v3;
-            v3 = temp;
-        }
-
-        if (v1.coordinates.y > v2.coordinates.y) {
-            let temp = v2;
-            v2 = v1;
-            v1 = temp;
-        }
+        // Sort
+        [v1, v2, v3] = [v1, v2, v3].sort((v1, v2) => v1.coordinates.y < v2.coordinates.y ? -1 : 1);
 
         let p1 = v1.coordinates;
         let p2 = v2.coordinates;
