@@ -152,9 +152,11 @@ export class Device {
         let sx = this.interpolate(pa.x, pb.x, gradient1) >> 0;
         let ex = this.interpolate(pc.x, pd.x, gradient2) >> 0;
 
+        // Z-buffer
         let z1 = this.interpolate(pa.z, pb.z, gradient1);
         let z2 = this.interpolate(pc.z, pd.z, gradient2);
 
+        // Gouraud shading
         let snl = this.interpolate(data.ndotla, data.ndotlb, gradient1);
         let enl = this.interpolate(data.ndotlc, data.ndotld, gradient2);
 
@@ -163,34 +165,34 @@ export class Device {
             let z = this.interpolate(z1, z2, gradient);
             let ndotl = this.interpolate(snl, enl, gradient);
 
-            let vector = new Vector3(x, data.currentY, z);
-            let pointColor =  new Color(color.r * ndotl, color.g * ndotl, color.b * ndotl, 255);
-
-            this.drawPoint(vector, pointColor);
+            this.drawPoint(new Vector3(x, data.currentY, z), new Color(color.r * ndotl, color.g * ndotl, color.b * ndotl, 255));
         }
     }
 
     private computeNDotL(vertex: Vector3, normal: Vector3, lightPosition: Vector3) {
-        let lightDirection = lightPosition.subtract(vertex).normalize();
-        return Math.max(0, Vector3.dot(normal.normalize(), lightDirection));
+        let lightDirection = Vector3.difference(lightPosition, vertex).normalize();
+        return Math.max(0, Vector3.dot(normal, lightDirection));
     }
 
     private drawTriangle(v1: Vertex, v2: Vertex, v3: Vertex, color: Color) {
-        // Sort
         [v1, v2, v3] = [v1, v2, v3].sort((v1, v2) => v1.coordinates.y < v2.coordinates.y ? -1 : 1);
 
         let p1 = v1.coordinates;
         let p2 = v2.coordinates;
         let p3 = v3.coordinates;
 
-        // Lighting
+        // // Flat shading - single normal vector; shading for the entire triangle
         // let vnFace = (v1.normal.add(v2.normal.add(v3.normal))).scale(1 / 3);
         // let centerPoint = (v1.worldCoordinates.add(v2.worldCoordinates.add(v3.worldCoordinates))).scale(1 / 3);
         // let ndotl = this.computeNDotL(centerPoint, vnFace, lightPosition);
+
+        // Gourard shading - the color of each vertex is computed and then interpolated across the surface
         let lightPosition = new Vector3(0, 10, 10);
         let nl1 = this.computeNDotL(v1.worldCoordinates, v1.normal, lightPosition);
         let nl2 = this.computeNDotL(v2.worldCoordinates, v2.normal, lightPosition);
         let nl3 = this.computeNDotL(v3.worldCoordinates, v3.normal, lightPosition);
+
+        // Phong shading - interpolating the vectors across the surface and computing the color for each point of interest
 
         // Slopes
         let dP1P2 = p2.y - p1.y > 0 ? (p2.x - p1.x) / (p2.y - p1.y) : 0;

@@ -31,12 +31,12 @@ export class Renderer {
     }
 
     private initMeshes() {
-        this.meshes = Mesh.fromBabylon(monkey);
+        this.meshes = Mesh.fromBabylon(torus);
     }
 
     private initCamera() {
         this.camera = new Camera();
-        this.camera.position = new Vector3(0, -2, -8);
+        this.camera.position = new Vector3(0, -5, 5);
         this.camera.target = Vector3.ZERO;
     }
 
@@ -51,9 +51,7 @@ export class Renderer {
         this.device.render(this.camera, this.meshes);
 
         this.meshes.forEach(mesh => {
-            // mesh.rotation.z -= 0.003;
-            mesh.position.x += 0.005;
-            mesh.position.y -= 0.002;
+            mesh.rotation.z -= 0.02;
         });
 
         requestAnimationFrame(this.render);
