@@ -4,6 +4,7 @@ import { Mesh } from ".//Mesh";
 import { Camera } from "./Camera";
 import { Device } from "./Device";
 import { Vector3 } from "../Models/Vector3";
+import torus from "../../models/torus.babylon.json";
 import monkey from "../../models/monkey.babylon.json";
 
 @injectable()
@@ -30,12 +31,12 @@ export class Renderer {
     }
 
     private initMeshes() {
-        this.meshes = Mesh.fromBabylon(monkey);
+        this.meshes = Mesh.fromBabylon(torus);
     }
 
     private initCamera() {
         this.camera = new Camera();
-        this.camera.position = new Vector3(3, -2, -8);
+        this.camera.position = new Vector3(3, -2, -5);
         this.camera.target = Vector3.ZERO;
     }
 
@@ -50,7 +51,7 @@ export class Renderer {
         this.device.render(this.camera, this.meshes);
 
         this.meshes.forEach(mesh => {
-            mesh.rotation.z += 0.003;
+            // mesh.rotation.z -= 0.003;
             mesh.position.x += 0.005;
             mesh.position.y -= 0.002;
         });

@@ -9,9 +9,9 @@ import { Transformations } from "./Transformations";
 interface ScanLineData {
     currentY: number;
     ndotla: number;
-    ndotlb?: number;
-    ndotlc?: number;
-    ndotld?: number;
+    ndotlb: number;
+    ndotlc: number;
+    ndotld: number;
 }
 
 export class Device {
@@ -149,12 +149,18 @@ export class Device {
         let z1 = this.interpolate(pa.z, pb.z, gradient1);
         let z2 = this.interpolate(pc.z, pd.z, gradient2);
 
+        let snl = this.interpolate(data.ndotla, data.ndotlb, gradient1);
+        let enl = this.interpolate(data.ndotlc, data.ndotld, gradient2);
+
         for (let x = sx; x < ex; x++) {
             let gradient = (x - sx) / (ex - sx);
             let z = this.interpolate(z1, z2, gradient);
-            let ndotl = data.ndotla;
+            let ndotl = this.interpolate(snl, enl, gradient);
 
-            this.drawPoint(new Vector3(x, data.currentY, z), new Color(color.r * ndotl, color.g * ndotl, color.b * ndotl, 255));
+            let vector = new Vector3(x, data.currentY, z);
+            let pointColor =  new Color(color.r * ndotl, color.g * ndotl, color.b * ndotl, 255);
+
+            this.drawPoint(vector, pointColor);
         }
     }
 
@@ -187,10 +193,13 @@ export class Device {
         let p3 = v3.coordinates;
 
         // Lighting
-        let vnFace = (v1.normal.add(v2.normal.add(v3.normal))).scale(1 / 3);
-        let centerPoint = (v1.worldCoordinates.add(v2.worldCoordinates.add(v3.worldCoordinates))).scale(1 / 3);
-        let lightPosition = new Vector3(10, 10, 0);
-        let ndotl = this.computeNDotL(centerPoint, vnFace, lightPosition);
+        // let vnFace = (v1.normal.add(v2.normal.add(v3.normal))).scale(1 / 3);
+        // let centerPoint = (v1.worldCoordinates.add(v2.worldCoordinates.add(v3.worldCoordinates))).scale(1 / 3);
+        // let ndotl = this.computeNDotL(centerPoint, vnFace, lightPosition);
+        let lightPosition = new Vector3(0, 10, 10);
+        let nl1 = this.computeNDotL(v1.worldCoordinates, v1.normal, lightPosition);
+        let nl2 = this.computeNDotL(v2.worldCoordinates, v2.normal, lightPosition);
+        let nl3 = this.computeNDotL(v3.worldCoordinates, v3.normal, lightPosition);
 
         // Slopes
         let dP1P2 = p2.y - p1.y > 0 ? (p2.x - p1.x) / (p2.y - p1.y) : 0;
@@ -199,22 +208,22 @@ export class Device {
         // P3 on the left
         if (dP1P2 > dP1P3) {
             for (let y = p1.y >> 0; y <= p3.y >> 0; y++) {
-                let data: ScanLineData = { currentY: y, ndotla: ndotl };
-
                 if (y < p2.y) {
+                    let data: ScanLineData = { currentY: y, ndotla: nl1, ndotlb: nl3, ndotlc: nl1, ndotld: nl2 };
                     this.processScanLine(data, v1, v3, v1, v2, color);
                 } else {
+                    let data: ScanLineData = { currentY: y, ndotla: nl1, ndotlb: nl3, ndotlc: nl2, ndotld: nl3 };
                     this.processScanLine(data, v1, v3, v2, v3, color);
                 }
             }
         // P2 on the left
         } else {
             for (let y = p1.y >> 0; y <= p3.y >> 0; y++) {
-                let data: ScanLineData = { currentY: y, ndotla: ndotl };
-
                 if (y < p2.y) {
+                    let data: ScanLineData = { currentY: y, ndotla: nl1, ndotlb: nl2, ndotlc: nl1, ndotld: nl3 };
                     this.processScanLine(data, v1, v2, v1, v3, color);
                 } else {
+                    let data: ScanLineData = { currentY: y, ndotla: nl2, ndotlb: nl3, ndotlc: nl1, ndotld: nl3 };
                     this.processScanLine(data, v2, v3, v1, v3, color);
                 }
             }
