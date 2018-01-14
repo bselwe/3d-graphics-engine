@@ -50,9 +50,9 @@ export class Renderer {
         this.device.render(this.camera, this.meshes);
 
         this.meshes.forEach(mesh => {
-            // mesh.rotation.z += 0.005;
-            mesh.position.x += 0.002;
-            mesh.position.z += 0.006;
+            mesh.rotation.z += 0.003;
+            mesh.position.x += 0.005;
+            mesh.position.y -= 0.002;
         });
 
         requestAnimationFrame(this.render);

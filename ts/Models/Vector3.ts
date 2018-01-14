@@ -178,6 +178,13 @@ export class Vector3 {
         return "[" + this.x + ", " + this.y + ", " + this.z + "]";
     }
 
+    // public static fromMatrix(matrix: mathjs.Matrix): Vector3 {
+    //     if (matrix.size() !== [3]) {
+    //         return Vector3.ZERO;
+    //     }
+    //     return new Vector3(matrix.get([0]), matrix.get([1]), matrix.get([2]));
+    // }
+
     public static dot(v1: Vector3, v2: Vector3): number {
         return (v1.x * v2.x + v1.y * v2.y + v1.z * v2.z);
     }

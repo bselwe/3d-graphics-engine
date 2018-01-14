@@ -1,5 +1,11 @@
 import { Vector3 } from "../Models/Vector3";
 
+export interface Vertex {
+    readonly normal: Vector3;
+    readonly coordinates: Vector3;
+    readonly worldCoordinates: Vector3;
+}
+
 export interface Face {
     readonly A: number;
     readonly B: number;
@@ -10,7 +16,7 @@ export class Mesh {
     name: string;
     position: Vector3;
     rotation: Vector3;
-    vertices: Vector3[];
+    vertices: Vertex[];
     faces: Face[];
 
     constructor(name: string, verticesCount: number, facesCount: number) {
@@ -40,7 +46,16 @@ export class Mesh {
                 let x = vertices[j * verticesStep];
                 let y = vertices[j * verticesStep + 1];
                 let z = vertices[j * verticesStep + 2];
-                mesh.vertices[j] = new Vector3(x, y, z);
+
+                let nx = vertices[j * verticesStep + 3];
+                let ny = vertices[j * verticesStep + 4];
+                let nz = vertices[j * verticesStep + 5];
+
+                mesh.vertices[j] = {
+                    normal: new Vector3(nx, ny, nz),
+                    coordinates: new Vector3(x, y, z),
+                    worldCoordinates: Vector3.ZERO
+                };
             }
 
             for (let j = 0; j < facesCount; j++) {
