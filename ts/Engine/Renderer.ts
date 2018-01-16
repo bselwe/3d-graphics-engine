@@ -2,11 +2,14 @@ import { container } from "../inversify.config";
 import { injectable } from "inversify";
 import { Mesh } from ".//Mesh";
 import { Camera } from "./Camera";
-import { Device, Shading } from "./Device";
+import { Device } from "./Device";
 import { Vector3 } from "../Models/Vector3";
-import torus from "../../models/torus.babylon.json";
-import monkey from "../../models/monkey.babylon.json";
 import { Panel } from "../Panel";
+import { ShadingType } from "../Models/Shading";
+
+import monkey from "../../models/monkey.babylon.json";
+import torus from "../../models/torus.babylon.json";
+import circle from "../../models/circle.babylon.json";
 
 @injectable()
 export class Renderer {
@@ -16,7 +19,7 @@ export class Renderer {
     private camera: Camera;
     private meshes: Mesh[];
     private lightPosition: Vector3;
-    private shading: Shading;
+    private shading: ShadingType;
     private previousDate: number;
 
     constructor(canvas: HTMLCanvasElement, panel: Panel) {
@@ -41,7 +44,7 @@ export class Renderer {
 
     private initCamera() {
         this.camera = new Camera();
-        this.camera.position = new Vector3(0, -5, 5);
+        this.camera.position = new Vector3(0, -5, 8);
         this.camera.target = Vector3.ZERO;
     }
 
@@ -51,7 +54,7 @@ export class Renderer {
 
     private addListeners() {
         this.panel.addListener("shading-change", (shading: string) => {
-            this.shading = shading === "Phong" ? Shading.Phong : shading === "Gouraud" ? Shading.Gouraud : Shading.Flat;
+            this.shading = shading === "Phong" ? ShadingType.Phong : shading === "Gouraud" ? ShadingType.Gouraud : ShadingType.Flat;
         });
     }
 

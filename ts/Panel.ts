@@ -1,6 +1,5 @@
 import { injectable } from "inversify";
 import { EventEmitter } from "eventemitter3";
-import { Shading } from "./Engine/Device";
 
 @injectable()
 export class Panel extends EventEmitter {
