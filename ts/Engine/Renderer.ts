@@ -2,23 +2,27 @@ import { container } from "../inversify.config";
 import { injectable } from "inversify";
 import { Mesh } from ".//Mesh";
 import { Camera } from "./Camera";
-import { Device } from "./Device";
+import { Device, Shading } from "./Device";
 import { Vector3 } from "../Models/Vector3";
 import torus from "../../models/torus.babylon.json";
 import monkey from "../../models/monkey.babylon.json";
+import { Panel } from "../Panel";
 
 @injectable()
 export class Renderer {
     private canvas: HTMLCanvasElement;
-    private fps: HTMLDivElement;
-    private previousDate: number;
-    private meshes: Mesh[];
-    private camera: Camera;
+    private panel: Panel;
     private device: Device;
+    private camera: Camera;
+    private meshes: Mesh[];
+    private lightPosition: Vector3;
+    private shading: Shading;
+    private previousDate: number;
 
-    constructor(canvas: HTMLCanvasElement, fps: HTMLDivElement) {
+    constructor(canvas: HTMLCanvasElement, panel: Panel) {
         this.canvas = canvas;
-        this.fps = fps;
+        this.panel = panel;
+        this.lightPosition = new Vector3(0, 10, 10);
         this.previousDate = performance.now();
     }
 
@@ -26,6 +30,7 @@ export class Renderer {
         this.initMeshes();
         this.initCamera();
         this.initDevice();
+        this.addListeners();
 
         requestAnimationFrame(this.render);
     }
@@ -44,11 +49,17 @@ export class Renderer {
         this.device = new Device(this.canvas);
     }
 
+    private addListeners() {
+        this.panel.addListener("shading-change", (shading: string) => {
+            this.shading = shading === "Phong" ? Shading.Phong : Shading.Gouraud;
+        });
+    }
+
     private render = () => {
         this.updateFps();
 
         this.device.clear();
-        this.device.render(this.camera, this.meshes);
+        this.device.render(this.camera, this.meshes, this.lightPosition, this.shading);
 
         this.meshes.forEach(mesh => {
             mesh.rotation.z -= 0.02;
@@ -62,6 +73,6 @@ export class Renderer {
         let currentFps = 1000 / (now - this.previousDate) >> 0;
         this.previousDate = now;
 
-        this.fps.innerText = `${currentFps} FPS`;
+        this.panel.fps.innerText = `${currentFps} FPS`;
     }
 }

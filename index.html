@@ -10,7 +10,13 @@
             <div class="canvas-wrapper">
                 <canvas id="application-canvas" width="640" height="480"></canvas>
             </div>
-            <div id="fps" />
+            <div id="fps"></div>
+            <div id="options">
+                <input type="radio" id="shading-gouraud" name="shading" value="Gouraud" checked /> 
+                <label for="shading-gouraud">Gouraud shading</label>
+                <input type="radio" id="shading-phong" name="shading" value="Phong" />
+                <label for="shading-phong">Phong shading</label>
+            </div>
         </div>
     </body>
 </html>
