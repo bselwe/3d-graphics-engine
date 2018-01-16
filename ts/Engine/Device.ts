@@ -8,20 +8,26 @@ import { Transformations } from "./Transformations";
 
 export enum Shading {
     Phong,
-    Gouraud
+    Gouraud,
+    Flat
 }
 
-interface PhongData {
-    currentY: number;
-    lightPosition: Vector3;
-}
-
-interface GouraudData {
+interface GouraudShading {
     currentY: number;
     ndotla: number;
     ndotlb: number;
     ndotlc: number;
     ndotld: number;
+}
+
+interface PhongShading {
+    currentY: number;
+    lightPosition: Vector3;
+}
+
+interface FlatShading {
+    currentY: number;
+    ndotl: number;
 }
 
 export class Device {
@@ -156,7 +162,7 @@ export class Device {
 
     // Gourard shading - the color of each vertex is computed and then interpolated across the surface
     // Draw line between 2 points from left to right, ab -> cd, points must be sorted
-    private processScanLineGouraud(data: GouraudData, va: Vertex, vb: Vertex, vc: Vertex, vd: Vertex, color: Color) {
+    private processScanLineGouraud(data: GouraudShading, va: Vertex, vb: Vertex, vc: Vertex, vd: Vertex, color: Color) {
         let pa = va.coordinates;
         let pb = vb.coordinates;
         let pc = vc.coordinates;
@@ -187,7 +193,7 @@ export class Device {
 
     // Phong shading - interpolating the vectors across the surface and computing the color for each point of interest
     // Draw line between 2 points from left to right, ab -> cd, points must be sorted
-    private processScanLinePhong(data: PhongData, va: Vertex, vb: Vertex, vc: Vertex, vd: Vertex, color: Color) {
+    private processScanLinePhong(data: PhongShading, va: Vertex, vb: Vertex, vc: Vertex, vd: Vertex, color: Color) {
         let pa = va.coordinates;
         let pb = vb.coordinates;
         let pc = vc.coordinates;
@@ -220,6 +226,33 @@ export class Device {
         }
     }
 
+    // Flat shading - single normal vector; shading for the entire triangle
+    // Draw line between 2 points from left to right, ab -> cd, points must be sorted
+    private processScanLineFlat(data: FlatShading, va: Vertex, vb: Vertex, vc: Vertex, vd: Vertex, color: Color) {
+        let pa = va.coordinates;
+        let pb = vb.coordinates;
+        let pc = vc.coordinates;
+        let pd = vd.coordinates;
+
+        let gradient1 = pa.y !== pb.y ? (data.currentY - pa.y) / (pb.y - pa.y) : 1;
+        let gradient2 = pc.y !== pd.y ? (data.currentY - pc.y) / (pd.y - pc.y) : 1;
+
+        let sx = this.interpolate(pa.x, pb.x, gradient1) >> 0;
+        let ex = this.interpolate(pc.x, pd.x, gradient2) >> 0;
+
+        // Z-buffer
+        let z1 = this.interpolate(pa.z, pb.z, gradient1);
+        let z2 = this.interpolate(pc.z, pd.z, gradient2);
+
+        for (let x = sx; x < ex; x++) {
+            let gradient = (x - sx) / (ex - sx);
+            let z = this.interpolate(z1, z2, gradient);
+            let ndotl = data.ndotl;
+
+            this.drawPoint(new Vector3(x, data.currentY, z), new Color(color.r * ndotl, color.g * ndotl, color.b * ndotl, 255));
+        }
+    }
+
     private computeNDotL(vertex: Vector3, normal: Vector3, lightPosition: Vector3) {
         let lightDirection = Vector3.difference(lightPosition, vertex).normalize();
         return Math.max(0, Vector3.dot(normal, lightDirection));
@@ -227,20 +260,25 @@ export class Device {
 
     private drawTriangle(v1: Vertex, v2: Vertex, v3: Vertex, color: Color, lightPosition: Vector3, shading: Shading) {
         [v1, v2, v3] = [v1, v2, v3].sort((v1, v2) => v1.coordinates.y < v2.coordinates.y ? -1 : 1);
-
         let p1 = v1.coordinates;
         let p2 = v2.coordinates;
         let p3 = v3.coordinates;
 
-        // // Flat shading - single normal vector; shading for the entire triangle
-        // let vnFace = (v1.normal.add(v2.normal.add(v3.normal))).scale(1 / 3);
-        // let centerPoint = (v1.worldCoordinates.add(v2.worldCoordinates.add(v3.worldCoordinates))).scale(1 / 3);
-        // let ndotl = this.computeNDotL(centerPoint, vnFace, lightPosition);
+        // Gouraud shading
+        let nl1: number = 0, nl2: number = 0, nl3: number = 0;
+        if (shading === Shading.Gouraud) {
+            nl1 = this.computeNDotL(v1.worldCoordinates, v1.normal, lightPosition);
+            nl2 = this.computeNDotL(v2.worldCoordinates, v2.normal, lightPosition);
+            nl3 = this.computeNDotL(v3.worldCoordinates, v3.normal, lightPosition);
+        }
 
-        // Gouraud
-        let nl1 = this.computeNDotL(v1.worldCoordinates, v1.normal, lightPosition);
-        let nl2 = this.computeNDotL(v2.worldCoordinates, v2.normal, lightPosition);
-        let nl3 = this.computeNDotL(v3.worldCoordinates, v3.normal, lightPosition);
+        // Flat shading
+        let ndotl: number = 0;
+        if (shading === Shading.Flat) {
+            let vnFace = (v1.normal.add(v2.normal.add(v3.normal))).scale(1 / 3);
+            let centerPoint = (v1.worldCoordinates.add(v2.worldCoordinates.add(v3.worldCoordinates))).scale(1 / 3);
+            ndotl = this.computeNDotL(centerPoint, vnFace, lightPosition);
+        }
 
         // Slopes
         let dP1P2 = p2.y - p1.y > 0 ? (p2.x - p1.x) / (p2.y - p1.y) : 0;
@@ -251,18 +289,25 @@ export class Device {
             for (let y = p1.y >> 0; y <= p3.y >> 0; y++) {
                 if (shading === Shading.Gouraud) {
                     if (y < p2.y) {
-                        let data: GouraudData = { currentY: y, ndotla: nl1, ndotlb: nl3, ndotlc: nl1, ndotld: nl2 };
+                        let data: GouraudShading = { currentY: y, ndotla: nl1, ndotlb: nl3, ndotlc: nl1, ndotld: nl2 };
                         this.processScanLineGouraud(data, v1, v3, v1, v2, color);
                     } else {
-                        let data: GouraudData = { currentY: y, ndotla: nl1, ndotlb: nl3, ndotlc: nl2, ndotld: nl3 };
+                        let data: GouraudShading = { currentY: y, ndotla: nl1, ndotlb: nl3, ndotlc: nl2, ndotld: nl3 };
                         this.processScanLineGouraud(data, v1, v3, v2, v3, color);
                     }
-                } else {
-                    let data: PhongData = { currentY: y, lightPosition };
+                } else if (shading === Shading.Phong) {
+                    let data: PhongShading = { currentY: y, lightPosition };
                     if (y < p2.y) {
                         this.processScanLinePhong(data, v1, v3, v1, v2, color);
                     } else {
                         this.processScanLinePhong(data, v1, v3, v2, v3, color);
+                    }
+                } else if (shading === Shading.Flat) {
+                    let data: FlatShading = { currentY: y, ndotl };
+                    if (y < p2.y) {
+                        this.processScanLineFlat(data, v1, v3, v1, v2, color);
+                    } else {
+                        this.processScanLineFlat(data, v1, v3, v2, v3, color);
                     }
                 }
             }
@@ -271,18 +316,25 @@ export class Device {
             for (let y = p1.y >> 0; y <= p3.y >> 0; y++) {
                 if (shading === Shading.Gouraud) {
                     if (y < p2.y) {
-                        let data: GouraudData = { currentY: y, ndotla: nl1, ndotlb: nl2, ndotlc: nl1, ndotld: nl3 };
+                        let data: GouraudShading = { currentY: y, ndotla: nl1, ndotlb: nl2, ndotlc: nl1, ndotld: nl3 };
                         this.processScanLineGouraud(data, v1, v2, v1, v3, color);
                     } else {
-                        let data: GouraudData = { currentY: y, ndotla: nl2, ndotlb: nl3, ndotlc: nl1, ndotld: nl3 };
+                        let data: GouraudShading = { currentY: y, ndotla: nl2, ndotlb: nl3, ndotlc: nl1, ndotld: nl3 };
                         this.processScanLineGouraud(data, v2, v3, v1, v3, color);
                     }
-                } else {
-                    let data: PhongData = { currentY: y, lightPosition };
+                } else if (shading === Shading.Phong) {
+                    let data: PhongShading = { currentY: y, lightPosition };
                     if (y < p2.y) {
                         this.processScanLinePhong(data, v1, v2, v1, v3, color);
                     } else {
                         this.processScanLinePhong(data, v2, v3, v1, v3, color);
+                    }
+                } else if (shading === Shading.Flat) {
+                    let data: FlatShading = { currentY: y, ndotl };
+                    if (y < p2.y) {
+                        this.processScanLineFlat(data, v1, v2, v1, v3, color);
+                    } else {
+                        this.processScanLineFlat(data, v2, v3, v1, v3, color);
                     }
                 }
             }

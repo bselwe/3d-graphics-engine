@@ -51,7 +51,7 @@ export class Renderer {
 
     private addListeners() {
         this.panel.addListener("shading-change", (shading: string) => {
-            this.shading = shading === "Phong" ? Shading.Phong : Shading.Gouraud;
+            this.shading = shading === "Phong" ? Shading.Phong : shading === "Gouraud" ? Shading.Gouraud : Shading.Flat;
         });
     }
 
