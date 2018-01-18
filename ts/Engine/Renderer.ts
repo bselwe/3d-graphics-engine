@@ -6,6 +6,7 @@ import { Device } from "./Device";
 import { Vector3 } from "../Models/Vector3";
 import { Panel } from "../Panel";
 import { ShadingType } from "../Models/Shading";
+import { Illumination } from "../Models/Illumination";
 
 import monkey from "../../models/monkey.babylon.json";
 import torus from "../../models/torus.babylon.json";
@@ -20,6 +21,7 @@ export class Renderer {
     private meshes: Mesh[];
     private lightPosition: Vector3;
     private shading: ShadingType;
+    private illumination: Illumination;
     private previousDate: number;
 
     constructor(canvas: HTMLCanvasElement, panel: Panel) {
@@ -44,7 +46,7 @@ export class Renderer {
 
     private initCamera() {
         this.camera = new Camera();
-        this.camera.position = new Vector3(0, -5, 8);
+        this.camera.position = new Vector3(0, -5, 5);
         this.camera.target = Vector3.ZERO;
     }
 
@@ -53,8 +55,12 @@ export class Renderer {
     }
 
     private addListeners() {
-        this.panel.addListener("shading-change", (shading: string) => {
+        this.panel.addListener("shading-change", (shading: "Phong" | "Gouraud" | "Flat") => {
             this.shading = shading === "Phong" ? ShadingType.Phong : shading === "Gouraud" ? ShadingType.Gouraud : ShadingType.Flat;
+        });
+
+        this.panel.addListener("illumination-change", (illumination: "Phong" | "Blinn") => {
+            this.illumination = illumination === "Phong" ? Illumination.Phong : Illumination.Blinn;
         });
     }
 
@@ -62,10 +68,11 @@ export class Renderer {
         this.updateFps();
 
         this.device.clear();
-        this.device.render(this.camera, this.meshes, this.lightPosition, this.shading);
+        this.device.render(this.camera, this.meshes, this.lightPosition, this.shading, this.illumination);
 
         this.meshes.forEach(mesh => {
-            mesh.rotation.z -= 0.02;
+            mesh.rotation.x += 0.01;
+            mesh.rotation.y += 0.01;
         });
 
         requestAnimationFrame(this.render);

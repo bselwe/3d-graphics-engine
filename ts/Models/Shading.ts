@@ -1,4 +1,5 @@
 import { Vector3 } from "./Vector3";
+import { Illumination } from "./Illumination";
 
 export enum ShadingType {
     Phong,
@@ -12,16 +13,17 @@ interface Shading {
 }
 
 export interface GouraudShading extends Shading {
-    ndotla: number;
-    ndotlb: number;
-    ndotlc: number;
-    ndotld: number;
+    Ia: number;
+    Ib: number;
+    Ic: number;
+    Id: number;
 }
 
 export interface PhongShading extends Shading {
     cameraPosition: Vector3;
+    illumination: Illumination;
 }
 
 export interface FlatShading extends Shading {
-    ndotl: number;
+    I: number;
 }

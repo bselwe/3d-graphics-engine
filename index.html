@@ -13,7 +13,7 @@
             <div id="fps"></div>
             <div id="options">
                 <div>
-                    <span>Shading:</span>
+                    <b>Shading</b>: 
                     <input type="radio" id="shading-gouraud" name="shading" value="Gouraud" checked /> 
                     <label for="shading-gouraud">Gouraud</label> 
                     <input type="radio" id="shading-phong" name="shading" value="Phong" /> 
@@ -22,7 +22,11 @@
                     <label for="shading-flat">Flat</label>
                 </div>
                 <div style="margin-top: 8px">
-                    <span>Illumination model: </span>
+                    <b>Illumination model</b>: 
+                    <input type="radio" id="illumination-phong" name="illumination" value="Phong" checked /> 
+                    <label for="illumination-phong">Phong</label>
+                    <input type="radio" id="illumination-blinn" name="illumination" value="Blinn" /> 
+                    <label for="illumination-blinn">Blinn</label>
                 </div>
             </div>
         </div>
