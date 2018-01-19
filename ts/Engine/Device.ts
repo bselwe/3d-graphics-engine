@@ -6,7 +6,7 @@ import { Vector3 } from "../Models/Vector3";
 import { Vector2 } from "../Models/Vector2";
 import { Transformations } from "./Transformations";
 import { ShadingType, GouraudShading, PhongShading, FlatShading } from "../Models/Shading";
-import { Illumination } from "./../Models/Illumination";
+import { Illumination, Light, Reflector } from "./../Models/Illumination";
 
 export class Device {
     private readonly maxDepth = 10000000;
@@ -32,7 +32,7 @@ export class Device {
         this.depthBuffer.fill(this.maxDepth);
     }
 
-    public render(camera: Camera, meshes: Mesh[], lightPosition: Vector3, shading: ShadingType = ShadingType.Gouraud, illumination: Illumination = Illumination.Phong) {
+    public render(camera: Camera, meshes: Mesh[], lights: Light[], shading: ShadingType = ShadingType.Gouraud, illumination: Illumination = Illumination.Phong) {
         let viewMatrix = Transformations.lookAt(camera.position, camera.target, Vector3.DOWN);
         let projectionMatrix = Transformations.perspective();
 
@@ -56,7 +56,7 @@ export class Device {
                 let pixelB = this.projectCoordinates(vertexB, transformMatrix, worldMatrix);
                 let pixelC = this.projectCoordinates(vertexC, transformMatrix, worldMatrix);
 
-                this.drawTriangle(pixelA, pixelB, pixelC, lightPosition, camera.position, shading, illumination);
+                this.drawTriangle(pixelA, pixelB, pixelC, lights, camera.position, shading, illumination);
             }
         }
 
@@ -198,7 +198,7 @@ export class Device {
             let z = this.interpolate(z1, z2, gradient);
             let n = this.interpolateVector(sn, en, gradient);
             let w = this.interpolateVector(swx, ewx, gradient);
-            let I = this.calculateIllumination(w, n, data.lightPosition, data.cameraPosition, data.illumination);
+            let I = this.calculateIllumination(w, n, data.lights, data.cameraPosition, data.illumination);
 
             this.drawPoint(new Vector3(x, data.currentY, z), new Color(255 * I, 255 * I, 255 * I, 255));
         }
@@ -233,27 +233,51 @@ export class Device {
     }
 
     // Phong/Blinn illumination model
-    private calculateIllumination(worldCoordinates: Vector3, normal: Vector3, lightPosition: Vector3, eyePosition: Vector3, illumination: Illumination) {
-        const kd = 0.6;
-        const ks = 1 - kd;
-        const color = 255;
+    private calculateIllumination(worldCoordinates: Vector3, normal: Vector3, lights: Light[], eyePosition: Vector3, illumination: Illumination) {
+        const ka = 0.1;
+        const kd = 0.65;
+        const ks = 1 - ka - kd;
+        const pow = 50;
+        let result = ka;
 
-        let lightDirection = Vector3.difference(lightPosition, worldCoordinates).normalize();
-        let ndotl = Math.max(0, Vector3.dot(normal, lightDirection));
-        let V = Vector3.difference(eyePosition, worldCoordinates).normalize();
+        lights.forEach(light => {
+            let L = Vector3.difference(light.position, worldCoordinates).normalize();
+            let ndotl = this.calculateCos(normal, L);
+            let V = Vector3.difference(eyePosition, worldCoordinates).normalize();
+            let I = 0;
 
-        if (illumination === Illumination.Phong) {
-            let R = Vector3.difference(normal.copy().scale(2 * ndotl), lightDirection);
-            let rdotv = Math.max(0, Vector3.dot(R, V));
-            let I = kd * ndotl + ks * rdotv;
-            return I;
-        }
-        else {
-            let H = lightDirection.copy().add(V).normalize();
-            let ndoth = Math.max(0, Vector3.dot(normal, H));
-            let I = kd * ndotl + ks * ndoth;
-            return I;
-        }
+            if (illumination === Illumination.Phong) {
+                let R = Vector3.difference(normal.copy().scale(2 * ndotl), L);
+                let rdotv = this.calculateCos(R, V);
+                I += kd * ndotl + ks * rdotv;
+            }
+            else {
+                let H = L.copy().add(V).normalize();
+                let ndoth = this.calculateCos(normal, H);
+                I += kd * ndotl + ks * ndoth;
+            }
+
+            if (this.isReflector(light)) {
+                let reflectorDirection = Vector3.difference(light.position, light.target).normalize();
+                let rddotl = Math.pow(this.calculateCos(reflectorDirection, L), pow);
+                I *= rddotl;
+            }
+
+            // let distance = Vector3.distance(light.position, worldCoordinates);
+            // I = I * c / (distance * distance);
+
+            result += I;
+        });
+
+        return Math.min(result, 1);
+    }
+
+    private isReflector(light: Light): light is Reflector {
+        return (light as Reflector).target !== undefined;
+    }
+
+    private calculateCos(vector1: Vector3, vector2: Vector3) {
+        return Math.max(0, Vector3.dot(vector1, vector2));
     }
 
     // private computeNDotL(vertex: Vector3, normal: Vector3, lightPosition: Vector3) {
@@ -261,7 +285,7 @@ export class Device {
     //     return Math.max(0, Vector3.dot(normal, lightDirection));
     // }
 
-    private drawTriangle(v1: Vertex, v2: Vertex, v3: Vertex, lightPosition: Vector3, cameraPosition: Vector3, shading: ShadingType, illumination: Illumination) {
+    private drawTriangle(v1: Vertex, v2: Vertex, v3: Vertex, lights: Light[], cameraPosition: Vector3, shading: ShadingType, illumination: Illumination) {
         [v1, v2, v3] = [v1, v2, v3].sort((v1, v2) => v1.coordinates.y < v2.coordinates.y ? -1 : 1);
         let p1 = v1.coordinates;
         let p2 = v2.coordinates;
@@ -270,9 +294,9 @@ export class Device {
         // Gouraud shading
         let I1: number = 0, I2: number = 0, I3: number = 0;
         if (shading === ShadingType.Gouraud) {
-            I1 = this.calculateIllumination(v1.worldCoordinates, v1.normal, lightPosition, cameraPosition, illumination);
-            I2 = this.calculateIllumination(v2.worldCoordinates, v2.normal, lightPosition, cameraPosition, illumination);
-            I3 = this.calculateIllumination(v3.worldCoordinates, v3.normal, lightPosition, cameraPosition, illumination);
+            I1 = this.calculateIllumination(v1.worldCoordinates, v1.normal, lights, cameraPosition, illumination);
+            I2 = this.calculateIllumination(v2.worldCoordinates, v2.normal, lights, cameraPosition, illumination);
+            I3 = this.calculateIllumination(v3.worldCoordinates, v3.normal, lights, cameraPosition, illumination);
         }
 
         // Flat shading
@@ -280,7 +304,7 @@ export class Device {
         if (shading === ShadingType.Flat) {
             let vnFace = (v1.normal.add(v2.normal.add(v3.normal))).scale(1 / 3);
             let centerPoint = (v1.worldCoordinates.add(v2.worldCoordinates.add(v3.worldCoordinates))).scale(1 / 3);
-            I = this.calculateIllumination(centerPoint, vnFace, lightPosition, cameraPosition, illumination);
+            I = this.calculateIllumination(centerPoint, vnFace, lights, cameraPosition, illumination);
         }
 
         // Slopes
@@ -292,21 +316,21 @@ export class Device {
             for (let y = p1.y >> 0; y <= p3.y >> 0; y++) {
                 if (shading === ShadingType.Gouraud) {
                     if (y < p2.y) {
-                        let data: GouraudShading = { currentY: y, lightPosition, Ia: I1, Ib: I3, Ic: I1, Id: I2 };
+                        let data: GouraudShading = { currentY: y, Ia: I1, Ib: I3, Ic: I1, Id: I2 };
                         this.processScanLineGouraud(data, v1, v3, v1, v2);
                     } else {
-                        let data: GouraudShading = { currentY: y, lightPosition, Ia: I1, Ib: I3, Ic: I2, Id: I3 };
+                        let data: GouraudShading = { currentY: y, Ia: I1, Ib: I3, Ic: I2, Id: I3 };
                         this.processScanLineGouraud(data, v1, v3, v2, v3);
                     }
                 } else if (shading === ShadingType.Phong) {
-                    let data: PhongShading = { currentY: y, lightPosition, cameraPosition, illumination };
+                    let data: PhongShading = { currentY: y, lights, cameraPosition, illumination };
                     if (y < p2.y) {
                         this.processScanLinePhong(data, v1, v3, v1, v2);
                     } else {
                         this.processScanLinePhong(data, v1, v3, v2, v3);
                     }
                 } else if (shading === ShadingType.Flat) {
-                    let data: FlatShading = { currentY: y, lightPosition, I };
+                    let data: FlatShading = { currentY: y, I };
                     if (y < p2.y) {
                         this.processScanLineFlat(data, v1, v3, v1, v2);
                     } else {
@@ -319,21 +343,21 @@ export class Device {
             for (let y = p1.y >> 0; y <= p3.y >> 0; y++) {
                 if (shading === ShadingType.Gouraud) {
                     if (y < p2.y) {
-                        let data: GouraudShading = { currentY: y, lightPosition, Ia: I1, Ib: I2, Ic: I1, Id: I3 };
+                        let data: GouraudShading = { currentY: y, Ia: I1, Ib: I2, Ic: I1, Id: I3 };
                         this.processScanLineGouraud(data, v1, v2, v1, v3);
                     } else {
-                        let data: GouraudShading = { currentY: y, lightPosition, Ia: I2, Ib: I3, Ic: I1, Id: I3 };
+                        let data: GouraudShading = { currentY: y, Ia: I2, Ib: I3, Ic: I1, Id: I3 };
                         this.processScanLineGouraud(data, v2, v3, v1, v3);
                     }
                 } else if (shading === ShadingType.Phong) {
-                    let data: PhongShading = { currentY: y, lightPosition, cameraPosition, illumination };
+                    let data: PhongShading = { currentY: y, lights, cameraPosition, illumination };
                     if (y < p2.y) {
                         this.processScanLinePhong(data, v1, v2, v1, v3);
                     } else {
                         this.processScanLinePhong(data, v2, v3, v1, v3);
                     }
                 } else if (shading === ShadingType.Flat) {
-                    let data: FlatShading = { currentY: y, lightPosition, I };
+                    let data: FlatShading = { currentY: y, I };
                     if (y < p2.y) {
                         this.processScanLineFlat(data, v1, v2, v1, v3);
                     } else {

@@ -1,16 +1,13 @@
 import { container } from "../inversify.config";
 import { injectable } from "inversify";
-import { Mesh } from ".//Mesh";
+import { Mesh } from "./Mesh";
 import { Camera } from "./Camera";
 import { Device } from "./Device";
 import { Vector3 } from "../Models/Vector3";
 import { Panel } from "../Panel";
 import { ShadingType } from "../Models/Shading";
-import { Illumination } from "../Models/Illumination";
-
-import monkey from "../../models/monkey.babylon.json";
-import torus from "../../models/torus.babylon.json";
-import circle from "../../models/circle.babylon.json";
+import { Illumination, Light, Reflector } from "../Models/Illumination";
+import { Scene } from "./Scene";
 
 @injectable()
 export class Renderer {
@@ -18,40 +15,28 @@ export class Renderer {
     private panel: Panel;
     private device: Device;
     private camera: Camera;
+    private scene: Scene;
     private meshes: Mesh[];
-    private lightPosition: Vector3;
+    private lights: Light[];
     private shading: ShadingType;
     private illumination: Illumination;
     private previousDate: number;
 
-    constructor(canvas: HTMLCanvasElement, panel: Panel) {
+    constructor(canvas: HTMLCanvasElement, panel: Panel, scene: Scene) {
         this.canvas = canvas;
         this.panel = panel;
-        this.lightPosition = new Vector3(0, 10, 10);
-        this.previousDate = performance.now();
+        this.scene = scene;
     }
 
     public init() {
-        this.initMeshes();
-        this.initCamera();
-        this.initDevice();
+        this.device = new Device(this.canvas);
+        this.camera = this.scene.camera;
+        this.meshes = this.scene.getMeshes();
+        this.lights = this.scene.getLights();
         this.addListeners();
 
+        this.previousDate = performance.now();
         requestAnimationFrame(this.render);
-    }
-
-    private initMeshes() {
-        this.meshes = Mesh.fromBabylon(torus);
-    }
-
-    private initCamera() {
-        this.camera = new Camera();
-        this.camera.position = new Vector3(0, -5, 5);
-        this.camera.target = Vector3.ZERO;
-    }
-
-    private initDevice() {
-        this.device = new Device(this.canvas);
     }
 
     private addListeners() {
@@ -68,12 +53,15 @@ export class Renderer {
         this.updateFps();
 
         this.device.clear();
-        this.device.render(this.camera, this.meshes, this.lightPosition, this.shading, this.illumination);
+        this.device.render(this.camera, this.meshes, this.lights, this.shading, this.illumination);
 
-        this.meshes.forEach(mesh => {
-            mesh.rotation.x += 0.01;
-            mesh.rotation.y += 0.01;
-        });
+        // this.meshes.forEach(mesh => {
+        //     mesh.rotation.x += 0.01;
+        //     mesh.rotation.y += 0.01;
+        // });
+
+        this.scene.torus.rotation.x += 0.01;
+        this.scene.torus.rotation.y += 0.01;
 
         requestAnimationFrame(this.render);
     }

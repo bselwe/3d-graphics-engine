@@ -1,5 +1,5 @@
 import { Vector3 } from "./Vector3";
-import { Illumination } from "./Illumination";
+import { Illumination, Light } from "./Illumination";
 
 export enum ShadingType {
     Phong,
@@ -9,7 +9,6 @@ export enum ShadingType {
 
 interface Shading {
     currentY: number;
-    lightPosition: Vector3;
 }
 
 export interface GouraudShading extends Shading {
@@ -21,6 +20,7 @@ export interface GouraudShading extends Shading {
 
 export interface PhongShading extends Shading {
     cameraPosition: Vector3;
+    lights: Light[];
     illumination: Illumination;
 }
 
