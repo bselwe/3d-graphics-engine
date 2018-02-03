@@ -8,11 +8,13 @@ import { Panel } from "../Panel";
 import { ShadingType } from "../Models/Shading";
 import { Illumination, Light, Reflector } from "../Models/Illumination";
 import { Scene } from "./Scene";
+import { KeyTracker, Key } from "../KeyTracker";
 
 @injectable()
 export class Renderer {
     private canvas: HTMLCanvasElement;
     private panel: Panel;
+    private keyTracker: KeyTracker;
     private device: Device;
     private camera: Camera;
     private scene: Scene;
@@ -21,16 +23,25 @@ export class Renderer {
     private shading: ShadingType;
     private illumination: Illumination;
     private previousDate: number;
+    private readonly cameraMovementStep = 0.5;
+    private readonly cameraRotationStep = 0.5;
 
-    constructor(canvas: HTMLCanvasElement, panel: Panel, scene: Scene) {
+    private readonly radius = 1;
+    private readonly interval = 0.07;
+    private readonly theta = 5;
+    private alpha = 0;
+    private counter = 0;
+
+    constructor(canvas: HTMLCanvasElement, panel: Panel, keyTracker: KeyTracker, scene: Scene) {
         this.canvas = canvas;
         this.panel = panel;
+        this.keyTracker = keyTracker;
         this.scene = scene;
     }
 
     public init() {
         this.device = new Device(this.canvas);
-        this.camera = this.scene.camera;
+        this.camera = this.scene.staticCamera;
         this.meshes = this.scene.getMeshes();
         this.lights = this.scene.getLights();
         this.addListeners();
@@ -40,6 +51,10 @@ export class Renderer {
     }
 
     private addListeners() {
+        this.panel.addListener("camera-change", (camera: "Static" | "Follow" | "Object") => {
+            this.camera = camera === "Static" ? this.scene.staticCamera : camera === "Follow" ? this.scene.followCamera : this.scene.objectCamera;
+        });
+
         this.panel.addListener("shading-change", (shading: "Phong" | "Gouraud" | "Flat") => {
             this.shading = shading === "Phong" ? ShadingType.Phong : shading === "Gouraud" ? ShadingType.Gouraud : ShadingType.Flat;
         });
@@ -51,19 +66,89 @@ export class Renderer {
 
     private render = () => {
         this.updateFps();
+        this.updateCameras();
+        this.updateMeshes();
 
         this.device.clear();
         this.device.render(this.camera, this.meshes, this.lights, this.shading, this.illumination);
 
+        requestAnimationFrame(this.render);
+    }
+
+    private updateCameras() {
+        if (this.camera === this.scene.followCamera) {
+            this.camera.target = this.scene.train.position.copy();
+        }
+
+        if (this.camera === this.scene.objectCamera) {
+            this.camera.position = new Vector3(this.scene.train.position.x, this.scene.train.position.y + 20, this.scene.train.position.z);
+        }
+
+        if (this.camera === this.scene.objectCamera) {
+            return;
+        }
+
+        let d = Vector3.difference(this.camera.target, this.camera.position).normalize().scale(1);
+
+        if (this.keyTracker.keys[Key.W]) {
+            let v = Vector3.difference(this.camera.target, this.camera.position).normalize();
+            this.camera.position.add(v);
+            this.camera.target.add(v);
+        }
+        if (this.keyTracker.keys[Key.S]) {
+            let v = Vector3.difference(this.camera.position, this.camera.target).normalize();
+            this.camera.position.add(v);
+            this.camera.target.add(v);
+        }
+        if (this.keyTracker.keys[Key.A]) {
+            this.camera.position.x += this.cameraMovementStep;
+            this.camera.target.x += this.cameraMovementStep;
+        }
+        if (this.keyTracker.keys[Key.D]) {
+            this.camera.position.x -= this.cameraMovementStep;
+            this.camera.target.x -= this.cameraMovementStep;
+        }
+
+        if (this.camera === this.scene.followCamera) {
+            return;
+        }
+
+        if (this.keyTracker.keys[Key.UP]) {
+            this.camera.target.y += this.cameraRotationStep;
+        }
+        if (this.keyTracker.keys[Key.DOWN]) {
+            this.camera.target.y -= this.cameraRotationStep;
+        }
+        if (this.keyTracker.keys[Key.LEFT]) {
+            this.camera.target.x += this.cameraRotationStep;
+        }
+        if (this.keyTracker.keys[Key.RIGHT]) {
+            this.camera.target.x -= this.cameraMovementStep;
+        }
+    }
+
+    private updateMeshes() {
         // this.meshes.forEach(mesh => {
         //     mesh.rotation.x += 0.01;
         //     mesh.rotation.y += 0.01;
         // });
 
-        this.scene.torus.rotation.x += 0.01;
-        this.scene.torus.rotation.y += 0.01;
+        this.scene.train.rotation.x += 0.01;
+        this.scene.train.rotation.y += 0.01;
 
-        requestAnimationFrame(this.render);
+        let x = this.radius * Math.cos(this.theta);
+        let y = 0;
+        let z = this.radius * Math.sin(this.theta);
+        let deltaX = z * Math.cos(this.alpha) - x * Math.sin(this.alpha);
+        let deltaZ = x * Math.cos(this.alpha) + z * Math.sin(this.alpha);
+
+        this.scene.train.position.x += deltaX;
+        this.scene.train.position.y += y;
+        this.scene.train.position.z += deltaZ;
+
+        this.scene.reflector.position = new Vector3(this.scene.train.position.x, this.scene.train.position.y - 4, this.scene.train.position.z);
+
+        this.alpha += this.interval;
     }
 
     private updateFps() {

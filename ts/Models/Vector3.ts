@@ -158,6 +158,16 @@ export class Vector3 {
         return this.scale(1.0 / length);
     }
 
+    // public rotate(angle: number): Vector3 {
+    //     let x = this.x;
+    //     let y = this.y;
+
+    //     this.x = x * Math.cos(angle) - y * Math.sin(angle);
+    //     this.y = x * Math.sin(angle) + y * Math.cos(angle);
+
+    //     return this;
+    // }
+
     public getLength(): number {
         return Math.sqrt(this.getSquaredLength());
     }

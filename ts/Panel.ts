@@ -13,6 +13,11 @@ export class Panel extends EventEmitter {
     }
 
     private configureEvents() {
+        let cameras = document.getElementsByName("camera") as NodeListOf<HTMLInputElement>;
+        cameras.forEach(camera => {
+            camera.onchange = () => this.emit("camera-change", camera.value);
+        });
+
         let shadings = document.getElementsByName("shading") as NodeListOf<HTMLInputElement>;
         shadings.forEach(shading => {
             shading.onchange = () => this.emit("shading-change", shading.value);

@@ -12,7 +12,16 @@
             </div>
             <div id="fps"></div>
             <div id="options">
-                <div>
+                <div id="camera">
+                    <b>Camera</b>: 
+                    <input type="radio" id="camera-static" name="camera" value="Static" checked /> 
+                    <label for="camera-static">Static</label> 
+                    <input type="radio" id="camera-follow" name="camera" value="Follow" /> 
+                    <label for="camera-follow">Follow</label>
+                    <input type="radio" id="camera-object" name="camera" value="Object" /> 
+                    <label for="camera-object">Object</label>
+                </div>
+                <div style="margin-top: 8px"> 
                     <b>Shading</b>: 
                     <input type="radio" id="shading-gouraud" name="shading" value="Gouraud" checked /> 
                     <label for="shading-gouraud">Gouraud</label> 
@@ -23,9 +32,9 @@
                 </div>
                 <div style="margin-top: 8px">
                     <b>Illumination model</b>: 
-                    <input type="radio" id="illumination-phong" name="illumination" value="Phong" checked /> 
+                    <input type="radio" id="illumination-phong" name="illumination" value="Phong" /> 
                     <label for="illumination-phong">Phong</label>
-                    <input type="radio" id="illumination-blinn" name="illumination" value="Blinn" /> 
+                    <input type="radio" id="illumination-blinn" name="illumination" value="Blinn" checked /> 
                     <label for="illumination-blinn">Blinn</label>
                 </div>
             </div>

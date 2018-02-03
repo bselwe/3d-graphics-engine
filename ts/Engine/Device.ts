@@ -32,7 +32,7 @@ export class Device {
         this.depthBuffer.fill(this.maxDepth);
     }
 
-    public render(camera: Camera, meshes: Mesh[], lights: Light[], shading: ShadingType = ShadingType.Gouraud, illumination: Illumination = Illumination.Phong) {
+    public render(camera: Camera, meshes: Mesh[], lights: Light[], shading: ShadingType = ShadingType.Gouraud, illumination: Illumination = Illumination.Blinn) {
         let viewMatrix = Transformations.lookAt(camera.position, camera.target, Vector3.DOWN);
         let projectionMatrix = Transformations.perspective();
 
@@ -235,9 +235,10 @@ export class Device {
     // Phong/Blinn illumination model
     private calculateIllumination(worldCoordinates: Vector3, normal: Vector3, lights: Light[], eyePosition: Vector3, illumination: Illumination) {
         const ka = 0.1;
-        const kd = 0.65;
-        const ks = 1 - ka - kd;
+        const kd = 0.6;
+        const ks = 0.3;
         const pow = 50;
+        const c = 130;
         let result = ka;
 
         lights.forEach(light => {
@@ -261,10 +262,10 @@ export class Device {
                 let reflectorDirection = Vector3.difference(light.position, light.target).normalize();
                 let rddotl = Math.pow(this.calculateCos(reflectorDirection, L), pow);
                 I *= rddotl;
+            } else {
+                let distance = Vector3.distance(light.position, worldCoordinates);
+                I = I * c / (distance * distance);
             }
-
-            // let distance = Vector3.distance(light.position, worldCoordinates);
-            // I = I * c / (distance * distance);
 
             result += I;
         });
