@@ -25,7 +25,7 @@ export class Renderer {
     private previousDate: number;
     private readonly cameraMovementStep = 0.5;
     private readonly cameraRotationStep = 0.5;
-
+    private readonly reflectorRotationStep = 0.5;
     private readonly radius = 1;
     private readonly interval = 0.07;
     private readonly theta = 5;
@@ -67,6 +67,7 @@ export class Renderer {
     private render = () => {
         this.updateFps();
         this.updateCameras();
+        this.updateReflector();
         this.updateMeshes();
 
         this.device.clear();
@@ -123,7 +124,19 @@ export class Renderer {
             this.camera.target.x += this.cameraRotationStep;
         }
         if (this.keyTracker.keys[Key.RIGHT]) {
-            this.camera.target.x -= this.cameraMovementStep;
+            this.camera.target.x -= this.cameraRotationStep;
+        }
+    }
+
+    private updateReflector() {
+        if (this.keyTracker.keys[Key.LBRACKET]) {
+            this.scene.reflector.target.x -= this.reflectorRotationStep;
+            this.scene.reflector.target.z -= this.reflectorRotationStep;
+        }
+
+        if (this.keyTracker.keys[Key.RBRACKET]) {
+            this.scene.reflector.target.x += this.reflectorRotationStep;
+            this.scene.reflector.target.z += this.reflectorRotationStep;
         }
     }
 

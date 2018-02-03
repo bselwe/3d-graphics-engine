@@ -5,9 +5,11 @@ import { Light, Reflector } from "../Models/Illumination";
 import { Camera } from "./Camera";
 
 import monkey from "../../models/monkey.babylon.json";
+import torus from "../../models/torus.babylon.json";
 import circle from "../../models/circle.babylon.json";
 import train from "../../models/train.babylon.json";
-import terrain from "../../models/terrain3.babylon.json";
+import terrain from "../../models/terrain.babylon.json";
+import tree from "../../models/tree.babylon.json";
 
 @injectable()
 export class Scene {
@@ -20,6 +22,8 @@ export class Scene {
 
     terrain: Mesh;
     train: Mesh;
+    tree: Mesh;
+    torus: Mesh;
 
     constructor() {
         this.initMeshes();
@@ -44,9 +48,18 @@ export class Scene {
     private initMeshes() {
         this.terrain = Mesh.fromBabylon(terrain)[0];
         this.train = Mesh.fromBabylon(train)[0];
+        this.tree = Mesh.fromBabylon(tree)[0];
+        this.torus = Mesh.fromBabylon(torus)[0];
 
         this.train.position.z = 12;
         this.train.position.y = 3;
+
+        this.tree.position.y = 1.5;
+        this.tree.position.x = 10;
+        this.tree.position.z = 10;
+
+        this.torus.position.x = 10;
+        this.torus.position.z = -7;
     }
 
     private initLights() {
@@ -56,14 +69,16 @@ export class Scene {
 
         this.reflector = {
             position: new Vector3(-2, 10, 3),
-            target: new Vector3(10, 0, 10)
+            target: new Vector3(10, 3, 10)
         };
     }
 
     getMeshes(): Mesh[] {
         return [
             this.terrain,
-            this.train
+            this.train,
+            this.tree,
+            this.torus
         ];
     }
 
